@@ -1,0 +1,66 @@
+---
+title: "Calculate Total Trackline Distance"
+output: html_notebook
+---
+
+
+```{r}
+.packageName<-"argosfilter"
+
+`distanceTrack` <-
+function(lat, lon)
+{
+distanceTrack<-numeric(length(lat)-1)
+for (k in 1:(length(lat)-1)){
+	lat1<-lat[k]
+	lat2<-lat[k+1]
+	lon1<-lon[k]
+	lon2<-lon[k+1]
+	distanceTrack[k]<-distance(lat1,lat2,lon1,lon2)
+	}
+distanceTrack
+}
+```
+
+
+Total trackline tracked with the acoustics GPS, which needs to be paired down by effort and time of day.
+```{r}
+library(lubridate)
+
+gps <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data\\GPS_1303_raw - Copy.csv')
+
+gps <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data\\GPS_1604_edit.csv')
+
+gps <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data\\GPS_1705_raw.csv')
+gps <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data\\GPS_1706_raw.csv')
+
+#subset for correct gps values, using Latitude is easiest
+gpssub <- subset(gps, (Latitude > 15 & Latitude < 32 ))
+
+#gpssub$UTC <- as.character(gpssub$UTC)
+
+gpssub$UTC <- as.POSIXct(as.character(gpssub$UTC), "%Y-%m-%d %H:%M:%S")#, tz="UTC")
+
+#1604 is problem dataset for date-time
+gpssub$UTC <- as.POSIXct(strptime(as.character(gpssub$UTC), "%m-%d-%Y %H:%M:%S"))
+
+#add column for distances
+gpssub$distance <- NA
+gpssub$distance[2:nrow(gpssub)] <- distanceTrack(gpssub$Latitude, gpssub$Longitude)
+
+#sum the distances in km
+SE1303=sum(gpssub$distance[2:nrow(gpssub)])
+SE1604=sum(gpssub$distance[2:nrow(gpssub)])
+L1705=sum(gpssub$distance[2:nrow(gpssub)])
+SE1706=sum(gpssub$distance[2:nrow(gpssub)])
+```
+
+```{r}
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

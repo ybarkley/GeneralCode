@@ -1,0 +1,302 @@
+# March 15, 2018
+
+# SCript to examine and clean large datasets: GPS, Depth data for 
+Chp 2: Pm localization
+
+####################
+# FOR PACES  ###
+####################
+
+
+3/19/18 - Start by standardizing script for 1303
+
+
+
+```{r}
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+
+#Load gps & depth data
+gps <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data/GPS_1303_raw.csv')
+gps1705 <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data/GPS_1705_raw.csv')
+
+#Must save in Excel with the custom date/time format that includes seconds.
+depth <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\HICEAS_2017\\Depth_1705_20170928.csv', header=T)
+depth1303 <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\A_GOOD DETECTIONS\\1303.A42.S21-20170516\\Depth_1303.A42.S21.csv')
+
+#for 1303 depth
+depth1303$UTC<-as.character(depth1303$UTC)
+depth1303$UTC<-as.POSIXct(depth1303$UTC)
+
+depth$Sensor_0_Depth[which(depth$Sensor_0_Depth <= max(depth$Sensor_0_Depth) & depth$Sensor_0_Depth >= 90)] = '0'
+depth$Sensor_0_Depth[which(depth$Sensor_0_Depth >= min(depth$Sensor_0_Depth) & depth$Sensor_0_Depth <= 0)] = '0'
+
+depth$Sensor_0_Depth <- as.numeric(depth$Sensor_0_Depth)
+
+#Try this: Returns class POSIX automatically, but includes '-' between y-d-m, which is the same as doing it the long way to get DatePOSIX
+depth$UTC<-mdy_hms(paste(gps$Month, gps$Day, gps$Year, gps$hour, gps$min, gps$sec))
+
+### Need to verify dates: Will use POSIXlt functions (Week3, Anna's class)
+#Takes the format of the original Date-Time column and extracts the year, then creates a new column containing the separate objects, Year, Month, Day, etc.
+gps$Month <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M:%S"), "%m"))
+gps$Day <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M:%S"), "%d"))
+gps$Year <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M:%S"), "%Y"))
+
+gps$hour <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M:%S"), "%H"))
+gps$min <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M:%S"), "%M"))
+gps$sec <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M:%S"), "%S"))
+#Paste back into column for POSIXlt format
+gps$UTC = mdy_hm(paste(gps$Month, gps$Day, gps$Year, gps$hour, gps$min, gps$sec))
+
+
+depth$Month <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%m"))
+depth$Day <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%d"))
+depth$Year <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%Y"))
+
+depth$hour <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%H"))
+depth$min <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%M"))
+depth$sec <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%S"))
+
+#Paste back into column for POSIXlt format
+depth$UTC = mdy_hms(paste(depth$Month, depth$Day, depth$Year, depth$hour, depth$min, depth$sec))
+depth$UTC <- mdy_hms(depth$GpsTime) #Make new column converting to POSIX. This  removes the seconds, zeros them out.
+
+```
+
+
+#Plot depth
+```{r}
+#Visualize depth data with a plot
+library(ggplot2)
+headers = c("Id","UID","UTC","UTCMilliseconds","PCLocalTime","PCTime","ChannelBitmap","UpdateOf","Sensor_0_Raw","Sensor_0_Depth","Sensor_1_Raw","Sensor_1_Depth") 
+
+depth1303$UTC <- as.POSIXct(depth1303$UTC)
+
+
+#Id	UTC	Sensor_0_Raw	Sensor_0_Depth	Sensor_1_Raw	Sensor_1_Depth
+depth <- depth[, -c(2,4:8)]
+
+depth1303_filter <- filter(depth1303, UTC > '2013-05-16 21:00:00' & UTC < '2013-05-16  23:20:00', Sensor_0_Depth > -60)
+
+deep <- ggplot(depth_filter, aes(UTC, Sensor_0_Depth)) + 
+ theme_bw()+ theme(axis.text.x = element_text(angle=90, hjust=1),
+      plot.margin = margin(10,20,10,10))+
+  
+  geom_line() + geom_point()+
+  labs(title = "Array Depth 1705.A182.S68")
+  #scale_x_datetime(
+   # date_breaks="2 days", 
+    #date_labels = ("%m/%d/%Y"))
+
+ggsave(
+  'C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\A_GOOD DETECTIONS\\1705.A182.S68_ArrayDepth.png', 
+  deep,
+  width = 7,
+  height = 4,
+  dpi=300
+)
+write.csv(gps_filter1, 'C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\A_GOOD DETECTIONS\\1303.A42.S21-20170516\\GPS_1303.A42.S21.csv', row.names = F)
+```
+
+
+#Plot GPS
+```{r}
+### Visualize gps data with a plot ###
+library(ggplot2)
+
+gps_filter <- filter(gps, Month == 5, Day == 13, hour >=19 & hour < 22)#, Heading > 150)
+gps_filter1 <- filter(gps, Month == 5, Day == 16, hour >=21 & hour <= 23)#, Heading > 150)
+
+
+gpsJuly31<-filter(gps1706, UTC > '2017-07-31 23:00:00' , UTC < '2017-08-01 02:00:00', Speed <20)
+# gpsAug1 <- filter(gps1706, UTC > '2017-08-01 02:00:00' , UTC < '2017-08-01 04:00:00')
+# gps1303 <- filter(gps, Day == 21, hour > 20)
+# depth_sub <- filter(depth, Month == 08, hour > 1 & hour < 5)
+
+
+speed <-ggplot(gps1705_filter, aes(UTC, Speed)) + 
+ theme_bw()+ theme(axis.text.x = element_text(angle=90, hjust=1),
+      plot.margin = margin(10,20,10,10))+
+  
+  geom_line() + geom_point()+
+  labs(title = "Speed 1705.A182.S68")
+  # scale_x_datetime(
+  #   date_breaks="1 hour", 
+  #   date_labels = ("%H:%M"))
+
+
+gpsplot <-ggplot(gps1705_filter, aes(UTC, Heading)) + 
+ theme_bw()+ theme(axis.text.x = element_text(angle=90, hjust=1),
+      plot.margin = margin(10,20,10,10))+
+  
+  geom_line() + geom_point()+
+  labs(title = "Heading 1705.A182.S68")
+
+ggsave(
+  'C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\A_GOOD DETECTIONS\\1705.A182.S68_Heading.png', 
+  gpsplot,
+  width = 7,
+  height = 4,
+  dpi=300
+)
+
+```
+
+
+
+Different date-time format for 1108 - different format
+```{r}
+gps$Month <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M"), "%m"))
+gps$Day <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M"), "%d"))
+gps$Year <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M"), "%Y"))
+
+gps$hour <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M"), "%H"))
+gps$min <- as.numeric(format(strptime(gps$UTC, format= "%m/%d/%Y %H:%M"), "%M"))
+
+#Paste back into column for POSIXlt format
+gps$UTC = mdy_hm(paste(gps$Month, gps$Day, gps$Year, gps$hour, gps$min))
+
+
+#Long way to do it with base R, THIS WORKS
+depth$Month <- as.numeric(format(strptime(depth$GpsTime, format="%m/%d/%Y %H:%M:%S"), "%m"))
+depth$Day <- as.numeric(format(strptime(depth$GpsTime, format="%m/%d/%Y %H:%M:%S"), "%d"))
+depth$Year <- as.numeric(format(strptime(depth$GpsTime, format="%m/%d/%Y %H:%M:%S"), "%Y"))
+depth$hour <- as.numeric(format(strptime(depth$GpsTime, format= "%m/%d/%Y %H:%M:%S"), "%H"))
+depth$min <- as.numeric(format(strptime(depth$GpsTime, format= "%m/%d/%Y %H:%M:%S"), "%M"))
+depth$sec <- as.numeric(format(strptime(depth$GpsTime, format= "%m/%d/%Y %H:%M:%S"), "%S"))
+#Recombine for POSIX class: 
+depth$DatePOSIX = mdy_hms(paste(depth$Month, depth$Day, depth$Year, depth$hour, depth$min, depth$sec))
+
+
+#Try this: Returns class POSIX automatically, but includes '-' between y-d-m, which is the same as doing it the long way to get DatePOSIX
+depth$UTC<-mdy_hms(depth$GpsTime)
+
+#Does it plot? Depth has NAs, may need to fill them
+png(filename='C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\screenshots\\Depth_1108-index.png')
+
+ggplot(depth, aes(UTC, Index)) + 
+  theme_bw()+ 
+  theme(axis.text.x = element_text(angle=45, hjust=1), plot.margin = margin(10,20,10,10))+
+  geom_point()+ geom_line()+
+  #scale_y_discrete(breaks = seq(-55, 50, by=10), labels = seq(-55, 50, by=10))+
+   scale_x_datetime(
+    date_breaks="2 days", 
+    date_labels = ("%m-%d-%Y")) +
+  xlab("Date-Time") +
+  #ylab("Depth (m)")+
+  labs(title = "Depth_1108")
+
+dev.off()
+
+
+#####
+#Doesn't work
+#depth <- as.Date(depth$GpsTime, format="%m/%d/%Y %H:%M:%S")
+# depth$Day <- day(depth$GpsTime)
+# depth$Year <- year(depth$GpsTime)
+# depth$hour <- hour(depth$GpsTime)
+# depth$min <- minute(depth$GpsTime)
+# depth$sec <- second(depth$GpsTime)
+
+
+
+
+```
+
+```{r}
+# Look for dates that are inconsistent with the expected survey dates and replace them with the correct value(s)
+#1303
+gps$Month[which(gps$Month != 05 & gps$Day >= 08 & gps$Day <= 31)] = '5' 
+
+wrongMonth<-gps[which(gps$Month != 05 & gps$Day >= 08 & gps$Day <= 31), ] 
+# range(wrongMonth$Day)
+
+#1108
+
+
+#Combine corrected date-time into single column
+library(lubridate)
+gps$UTC = mdy_hms(paste(gps$Month, gps$Day, gps$Year, gps$hour, gps$min, gps$sec))
+gps <- gps[, c(1:14, 16, 17, 15, 18:20)]
+
+#Plot UTC to visually check
+plot(gps$UTC, gps$Latitude)
+```
+```{r}
+#Write new file
+write.csv(gps, 'C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data/GPS_1303.csv', row.names = F )
+```
+```{r}
+## Same Steps with Depth File
+depth$Month <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%m"))
+depth$Day <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%d"))
+depth$Year <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%Y"))
+
+depth$hour <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%H"))
+depth$min <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%M"))
+depth$sec <- as.numeric(format(strptime(depth$UTC, format= "%m/%d/%Y %H:%M:%S"), "%S"))
+
+#Paste back into column for POSIXlt format
+depth$UTC = mdy_hms(paste(depth$Month, depth$Day, depth$Year, depth$hour, depth$min, depth$sec))
+```
+
+```{r}
+#Correct dates
+depth$Month[which(depth$Month != 05 & depth$Day >= 08 & depth$Day <= 31)] = '5' 
+wrongMonDepth<-depth[which(depth$Month != 05 & depth$Day >= 08 & depth$Day <= 31),]
+#Paste corrected dates back into UTC column
+depth$UTC = mdy_hms(paste(depth$Month, depth$Day, depth$Year, depth$hour, depth$min, depth$sec))
+```
+```{r}
+write.csv(depth, 'C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All Depth Data/Depth_1303.csv', row.names = F )
+```
+
+
+########
+##For PICEAS 1108
+
+```{r}
+#Load gps & depth data
+gps <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data/GPS_1108_b.csv')
+
+#Must save in Excel with the custom date/time format that includes seconds.
+depth <- read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All Depth Data/Depth_1108_c.csv', header=T)
+#Replace NAs with -1 for when the depth sensor was no plugged in. Then you can still tell when the depth sensor was powered.
+depth$Depth_m[is.na(depth$Depth_m)] <- 0
+#OR which(is.na(depth$Depth_m))
+depth$Depth_m[which(depth$Depth_m <= max(depth$Depth_m) & depth$Depth_m >= 98)] = '0'
+depth$Depth_m <- as.numeric(depth$Depth_m)
+```
+
+
+##For HICEAS 1706/1705
+```{r}
+
+#remove columns to match == Id	UTC	Sensor_0_Raw	Sensor_0_Depth	Sensor_1_Raw	Sensor_1_Depth
+depth <- depth[, -c(2,4:8)]
+depth$UTC <- as.POSIXct(depth$UTC)
+depth_filter <- filter(depth, UTC > '2017-09-28 17:00:00' & UTC < '2017-09-29 00:00:00', Sensor_0_Depth>-20)
+
+
+#Can't filter using UTC for some reason, Resorting to brute force fucking R!
+depth_sub <- filter(depth, Month == 08, hour > 1 & hour < 5)
+depth_sub1 <- filter(depth, Month == 08, hour < 05)
+
+depth_filter <- rbind(depth_sub, depth_sub1)
+
+
+gps1705$UTC <- as.POSIXct(gps1705$UTC)
+#keep correct columns
+gps1705 <- gps1705[, c(2,4,10:21)]
+gps1705_filter <- filter(gps1705, UTC > '2017-09-28 17:00:00' & UTC < '2017-09-29 00:00:00')
+write.csv(gps1705_filter, "C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\A_Good Detections\\GPS_1705.A182.S68.csv", row.names = F)
+
+write.csv(gpsJuly31, "C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\All GPS Data\\GPS_1706.A121.S44.csv", row.names = F)
+
+write.csv(depth_filter, "C:\\Users\\Yvonne\\Documents\\PHD\\CHP2&3-Sperm\\data\\A_Good Detections\\Depth_1705.A1826844.csv", row.names = F)
+
+
+```
+
+

@@ -1,0 +1,67 @@
+---
+title: "Find Duplicate Whistles"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+This script identifies duplicate values between the whistles selected by P.Rex (2014) and those remeasured by YB (2017). 
+
+```{r}
+library(tibble)
+library(dplyr)
+```
+
+
+```{r}
+w = read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP1-FKW\\data\\nwhi14.csv')
+
+#Combine values from the original and new whistle numbers into one vector
+orig <- w$original 
+new <- w$new
+vector <- c(orig, new)
+#print duplicate values
+sort(vector[duplicated(vector)])
+```
+
+
+#Test it out here
+w = read.csv('C:\\Users\\Yvonne\\Documents\\PHD\\CHP1-FKW\\data\\test.csv')
+orig <- w$original
+new <- w$new
+vector <- c(orig, new)
+vector[duplicated(vector)]
+
+
+
+#example
+dat <- data.frame(id=c(1,1,3),id2=c(1,1,4),somevalue=c("x","y","z"))
+dat1 <- dat[duplicated(dat[,c('id','id2')]),]
+dat[row.names(unique(dat[,c("id", "id2")])),]
+
+# Remove duplicated rows based on Sepal.Length
+w1 = distinct(w, original, new)
+duplicated(w$original)
+# First assign your "id"s to an R object.
+# Here's a hypothetical example:
+id <- c("a","b","b","c","c","c","d","d","d","d")
+
+#To return ALL MINUS ONE duplicated values:
+id[duplicated(id)]
+## [1] "b" "c" "c" "d" "d" "d"
+
+#To return ALL duplicated values by specifying fromLast argument:
+id[duplicated(id) | duplicated(id, fromLast=TRUE)]
+## [1] "b" "b" "c" "c" "c" "d" "d" "d" "d"
+
+#Yet another way to return ALL duplicated values, using %in% operator:
+id[id %in% unique(id[duplicated(id)])]
+## [1] "b" "b" "c" "c" "c" "d" "d" "d" "d"```
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
